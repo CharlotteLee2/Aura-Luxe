@@ -8,7 +8,13 @@
 import SwiftUI
 
 struct ContentView: View {
+    private enum AuthScreen {
+        case register
+        case signIn
+    }
+
     @State private var showSplash = true
+    @State private var authScreen: AuthScreen = .register
 
     var body: some View {
         ZStack {
@@ -22,7 +28,16 @@ struct ContentView: View {
                             .fontWeight(.bold)
                     }
                 } else {
-                    RegistrationView()
+                    switch authScreen {
+                    case .register:
+                        RegistrationView {
+                            authScreen = .signIn
+                        }
+                    case .signIn:
+                        SignInView {
+                            authScreen = .register
+                        }
+                    }
                 }
             }
         }

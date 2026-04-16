@@ -18,9 +18,11 @@ struct RegistrationView: View {
     @State private var successMessage: String?
 
     private let authService: AuthServicing
+    private let onSignInTap: () -> Void
 
-    init(authService: AuthServicing = SupabaseAuthService()) {
+    init(authService: AuthServicing = SupabaseAuthService(), onSignInTap: @escaping () -> Void = {}) {
         self.authService = authService
+        self.onSignInTap = onSignInTap
     }
 
     private var minLengthProgress: CGFloat {
@@ -187,7 +189,7 @@ struct RegistrationView: View {
                             Text("Do you already have an account?")
                                 .font(.system(size: 14, weight: .regular, design: .rounded))
                             Button("Sign in") {
-                                // TODO: navigate to sign-in screen
+                                onSignInTap()
                             }
                             .font(.system(size: 14, weight: .bold, design: .rounded))
                             .foregroundStyle(.black)

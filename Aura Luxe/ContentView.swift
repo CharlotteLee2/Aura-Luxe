@@ -8,15 +8,32 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var vm = ProductsViewModel()
+    @State private var showSplash = true
 
     var body: some View {
-        VStack {
-            Text("Auraluxe")
-                .font(.largeTitle)
+        ZStack {
+            Color(.systemBackground).ignoresSafeArea()
+
+            Group {
+                if showSplash {
+                    VStack {
+                        Text("Auraluxe")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                    }
+                } else {
+                    RegistrationView()
+                }
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task {
-            await vm.runStartupScrape()
+            try? await Task.sleep(for: .seconds(5))
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showSplash = false
+                }
+            }
         }
     }
 }

@@ -19,10 +19,16 @@ struct RegistrationView: View {
 
     private let authService: AuthServicing
     private let onSignInTap: () -> Void
+    private let onRegistrationSuccess: () -> Void
 
-    init(authService: AuthServicing = SupabaseAuthService(), onSignInTap: @escaping () -> Void = {}) {
+    init(
+        authService: AuthServicing = SupabaseAuthService(),
+        onSignInTap: @escaping () -> Void = {},
+        onRegistrationSuccess: @escaping () -> Void = {}
+    ) {
         self.authService = authService
         self.onSignInTap = onSignInTap
+        self.onRegistrationSuccess = onRegistrationSuccess
     }
 
     private var minLengthProgress: CGFloat {
@@ -197,7 +203,7 @@ struct RegistrationView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
 
-                        HStack(spacing: 26) {
+                        HStack(spacing: 30) {
                             socialIcon("f.cursive")
                             socialIcon("camera")
                             socialIcon("envelope")
@@ -331,12 +337,15 @@ struct RegistrationView: View {
                     lastName: trimmedLastName
                 )
             }
-            successMessage = "Registration successful. Check your email for verification."
+            successMessage = nil
             email = ""
             phoneNumber = ""
             firstName = ""
             lastName = ""
             password = ""
+            await MainActor.run {
+                onRegistrationSuccess()
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -349,51 +358,26 @@ protocol AuthServicing {
 }
 
 struct SupabaseAuthService: AuthServicing {
-    private struct ProfileRow: Encodable {
-        let id: UUID
-        let email: String?
-        let phone: String?
-        let first_name: String
-        let last_name: String
+    private static let nameMetadata: (String, String) -> [String: AnyJSON] = { first, last in
+        [
+            "first_name": .string(first),
+            "last_name": .string(last),
+        ]
     }
 
     func signUpWithEmail(email: String, password: String, firstName: String, lastName: String) async throws {
-        let authResponse = try await SupabaseManage.shared.client.auth.signUp(
+        _ = try await SupabaseManage.shared.client.auth.signUp(
             email: email,
-            password: password
+            password: password,
+            data: Self.nameMetadata(firstName, lastName)
         )
-
-        let profile = ProfileRow(
-            id: authResponse.user.id,
-            email: email,
-            phone: nil,
-            first_name: firstName,
-            last_name: lastName
-        )
-
-        try await SupabaseManage.shared.client
-            .from("profiles")
-            .upsert(profile)
-            .execute()
     }
 
     func signUpWithPhone(phone: String, password: String, firstName: String, lastName: String) async throws {
-        let authResponse = try await SupabaseManage.shared.client.auth.signUp(
+        _ = try await SupabaseManage.shared.client.auth.signUp(
             phone: phone,
-            password: password
+            password: password,
+            data: Self.nameMetadata(firstName, lastName)
         )
-
-        let profile = ProfileRow(
-            id: authResponse.user.id,
-            email: nil,
-            phone: phone,
-            first_name: firstName,
-            last_name: lastName
-        )
-
-        try await SupabaseManage.shared.client
-            .from("profiles")
-            .upsert(profile)
-            .execute()
     }
 }

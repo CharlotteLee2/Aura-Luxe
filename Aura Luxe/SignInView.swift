@@ -9,12 +9,21 @@ struct SignInView: View {
     @State private var errorMessage: String?
     @State private var successMessage: String?
 
+    private let showAccountCreatedBanner: Bool
     private let authService: SignInServicing
     private let onRegisterTap: () -> Void
+    private let onSignInSuccess: () -> Void
 
-    init(authService: SignInServicing = SupabaseSignInService(), onRegisterTap: @escaping () -> Void = {}) {
+    init(
+        showAccountCreatedBanner: Bool = false,
+        authService: SignInServicing = SupabaseSignInService(),
+        onRegisterTap: @escaping () -> Void = {},
+        onSignInSuccess: @escaping () -> Void = {}
+    ) {
+        self.showAccountCreatedBanner = showAccountCreatedBanner
         self.authService = authService
         self.onRegisterTap = onRegisterTap
+        self.onSignInSuccess = onSignInSuccess
     }
 
     private var trimmedIdentifier: String {
@@ -57,9 +66,16 @@ struct SignInView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                     }
 
-                    Spacer(minLength: 0)
+                    Spacer(minLength: 4)
 
                     VStack(alignment: .leading, spacing: fieldSpacing) {
+                        if showAccountCreatedBanner {
+                            Text("Account created! Please sign in.")
+                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .foregroundStyle(.green)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
                         fieldLabel("Email/Phone Number")
                         roundedTextField(text: $identifier, isSecure: false, placeholder: "")
                             .textInputAutocapitalization(.never)
@@ -90,11 +106,8 @@ struct SignInView: View {
                             .font(.system(size: 14, weight: .regular, design: .rounded))
                             .foregroundStyle(.black)
                         }
-                    }
+                        .padding(.bottom, 40)
 
-                    Spacer(minLength: 0)
-
-                    VStack(spacing: bottomSpacing) {
                         Button {
                             Task {
                                 await signIn()
@@ -128,12 +141,18 @@ struct SignInView: View {
                             .underline()
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
+                    }
+
+                    Spacer(minLength: 16)
+
+                    VStack(spacing: bottomSpacing) {
 
                         Text("Sign In")
                             .font(.system(size: 14, weight: .regular, design: .rounded))
-                            .frame(maxWidth: .infinity, alignment: .center)
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
 
-                        HStack(spacing: 26) {
+                        HStack(spacing: 30) {
                             socialIcon("f.cursive")
                             socialIcon("camera")
                             socialIcon("envelope")
@@ -216,9 +235,18 @@ struct SignInView: View {
                 try await authService.signInWithPhone(phone: e164, password: password)
             }
 
-            successMessage = "Signed in successfully."
+            successMessage = nil
+            await MainActor.run {
+                onSignInSuccess()
+            }
         } catch {
-            errorMessage = error.localizedDescription
+            let message = error.localizedDescription
+            if message.localizedCaseInsensitiveContains("email not confirmed")
+                || message.localizedCaseInsensitiveContains("not confirmed") {
+                errorMessage = "Please confirm your email using the link we sent you, then sign in again."
+            } else {
+                errorMessage = message
+            }
         }
     }
 }

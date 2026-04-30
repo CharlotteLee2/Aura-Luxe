@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Courier Inbox Demo</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@trycourier/courier-js": "https://unpkg.com/@trycourier/courier-js@latest/dist/index.mjs",
+          "@trycourier/courier-ui-core": "https://unpkg.com/@trycourier/courier-ui-core@latest/dist/index.mjs",
+          "@trycourier/courier-ui-inbox": "https://unpkg.com/@trycourier/courier-ui-inbox@latest/dist/index.mjs"
+        }
+      }
+    </script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        padding: 32px;
+        background: #f5f5f5;
+      }
+      h1 {
+        margin-bottom: 16px;
+        font-size: 20px;
+      }
+      courier-inbox {
+        width: 100%;
+        height: 80vh;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Your Courier Inbox</h1>
+    <courier-inbox></courier-inbox>
+
+    <script type="module">
+      import { Courier } from "@trycourier/courier-ui-inbox";
+
+      Courier.shared.signIn({
+        userId: "example_user",
+        jwt: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzY29wZSI6InVzZXJfaWQ6ZXhhbXBsZV91c2VyIGluYm94OnJlYWQ6bWVzc2FnZXMgaW5ib3g6d3JpdGU6ZXZlbnRzIiwidGVuYW50X3Njb3BlIjoicHVibGlzaGVkL2Vudl8wMWtxYjBxMzF6Zms2dmc2emNlZmg0aGhrciIsInRlbmFudF9pZCI6ImM5OTBjYzk0LTI5MGMtNDU2Yi1hNzIzLWFhNzNjOWFlMzY5Mi9lbnZfMDFrcWIwcTMxemZrNnZnNnpjZWZoNGhoa3IiLCJpYXQiOjE3Nzc0MTc1ODAsImV4cCI6MTc3NzQyNDc4MCwianRpIjoiYmEwYzIyYWUtNWJlZC00OTY0LWE3ZGUtNTVjNmQ0NWZhNmU4In0.KSxBZnJof2zBwXEoex5tyB7JUUQd2kgIdczzHhk2mDs",
+      });
+    </script>
+  </body>
+</html>

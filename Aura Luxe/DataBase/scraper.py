@@ -1,9 +1,6 @@
-#
-//  scraper.py
-//  Aura Luxe
-//
-//  Created by CharlotteLee on 4/14/26.
-//
+# scraper.py
+# Aura Luxe
+# Created by CharlotteLee on 4/14/26.
 
 import requests
 from bs4 import BeautifulSoup
@@ -84,7 +81,22 @@ def scrape_product_page(url):
         if text and text.lower() != "[more]":
             ingredients.append(text)
 
-    return {"name": name, "ingredients": ingredients}
+    # Product image URL (prefer Open Graph image, fallback to first product image)
+    image_url = None
+    og_image = soup.find("meta", attrs={"property": "og:image"})
+    if og_image and og_image.get("content"):
+        image_url = og_image["content"].strip()
+    else:
+        first_img = soup.select_one("img.product-image, .product-image img, img[src*='product']")
+        if first_img and first_img.get("src"):
+            image_url = first_img["src"].strip()
+
+    return {
+        "name": name,
+        "ingredients": ingredients,
+        "image_url": image_url,
+        "source_url": url
+    }
 
 # -----------------------------
 # Main loop
@@ -107,18 +119,26 @@ for idx, product_url in enumerate(all_product_urls, start=1):
 
     name = product["name"]
     ingredients = product["ingredients"]
+    image_url = product.get("image_url")
+    source_url = product.get("source_url")
     skin_types = classify_skin_types(ingredients)
 
     print("   Name:", name)
     print("   Ingredients:", ingredients)
     print("   Skin types:", skin_types)
+    print("   Image URL:", image_url)
 
-    # Insert into Supabase
+    # Upsert into Supabase so reruns update existing rows (including image_url)
     try:
-        supabase.table("products").insert({
-            "product_name": name,
-            "ingredients": ingredients,
-            "skin_types": skin_types
-        }).execute()
+        supabase.table("products").upsert(
+            {
+                "product_name": name,
+                "ingredients": ingredients,
+                "skin_types": skin_types,
+                "image_url": image_url,
+                "source_url": source_url
+            },
+            on_conflict="product_name"
+        ).execute()
     except Exception as e:
         print("   Error saving to Supabase:", e)

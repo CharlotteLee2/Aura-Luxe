@@ -52,7 +52,16 @@ struct SignInView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemGray6).ignoresSafeArea()
+            LinearGradient(
+                colors: [
+                    Color(red: 0.92, green: 0.97, blue: 0.96),
+                    Color(red: 0.90, green: 0.95, blue: 0.98),
+                    Color(red: 0.95, green: 0.99, blue: 0.97),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
             GeometryReader { geometry in
                 let sectionSpacing: CGFloat = 12
@@ -70,7 +79,7 @@ struct SignInView: View {
 
                     VStack(alignment: .leading, spacing: fieldSpacing) {
                         if showAccountCreatedBanner {
-                            Text("Account created! Please sign in.")
+                            Text("Account created! Please verify your account in Gmail first, then sign in.")
                                 .font(.system(size: 14, weight: .medium, design: .rounded))
                                 .foregroundStyle(.green)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -124,8 +133,8 @@ struct SignInView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
                         }
-                        .background(Color(.systemGray4))
-                        .foregroundStyle(.black)
+                        .background(Color(red: 0.30, green: 0.63, blue: 0.55))
+                        .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                         .disabled(isLoading || !canSubmit)
                         .opacity((isLoading || !canSubmit) ? 0.65 : 1)
@@ -202,10 +211,13 @@ struct SignInView: View {
         }
         .padding(.horizontal, 16)
         .frame(height: 48)
-        .background(Color.clear)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.white.opacity(0.9))
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(.systemGray3), lineWidth: 2)
+                .stroke(Color(red: 0.74, green: 0.85, blue: 0.85), lineWidth: 1.5)
         )
     }
 

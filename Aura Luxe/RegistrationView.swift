@@ -88,7 +88,16 @@ struct RegistrationView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemGray6).ignoresSafeArea()
+            LinearGradient(
+                colors: [
+                    Color(red: 0.92, green: 0.97, blue: 0.96),
+                    Color(red: 0.90, green: 0.95, blue: 0.98),
+                    Color(red: 0.95, green: 0.99, blue: 0.97),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
             GeometryReader { geometry in
                 let sectionSpacing: CGFloat = 12
@@ -112,7 +121,7 @@ struct RegistrationView: View {
                         }
                         .padding(4)
                         .frame(maxWidth: .infinity)
-                        .background(Color(.systemGray5))
+                        .background(Color.white.opacity(0.7))
                         .clipShape(Capsule())
                     }
 
@@ -185,8 +194,8 @@ struct RegistrationView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
                         }
-                        .background(Color(.systemGray4))
-                        .foregroundStyle(.black)
+                        .background(Color(red: 0.30, green: 0.63, blue: 0.55))
+                        .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                         .disabled(isLoading || !isFormValid)
                         .opacity((isLoading || !isFormValid) ? 0.65 : 1)
@@ -243,7 +252,7 @@ struct RegistrationView: View {
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
-                .background(isSelected ? Color(.systemGray4) : Color.clear)
+                .background(isSelected ? Color.white : Color.clear)
                 .clipShape(Capsule())
         }
         .foregroundStyle(.black)
@@ -265,10 +274,13 @@ struct RegistrationView: View {
         }
         .padding(.horizontal, 16)
         .frame(height: 48)
-        .background(Color.clear)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.white.opacity(0.9))
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(.systemGray3), lineWidth: 2)
+                .stroke(Color(red: 0.74, green: 0.85, blue: 0.85), lineWidth: 1.5)
         )
     }
 

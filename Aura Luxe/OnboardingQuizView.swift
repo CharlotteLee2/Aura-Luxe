@@ -102,7 +102,16 @@ struct OnboardingQuizView: View {
             GeometryReader { geometry in
                 VStack(spacing: 22) {
                     topSection
-                    questionSection
+                    ScrollView(showsIndicators: false) {
+                        VStack {
+                            Spacer(minLength: 24)
+                            questionSection
+                            Spacer(minLength: 36)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: geometry.size.height * 0.58, alignment: .center)
+                        .padding(.bottom, 6)
+                    }
                     Spacer(minLength: 0)
                     bottomSection
                 }
@@ -173,9 +182,9 @@ struct OnboardingQuizView: View {
     }
 
     private var questionSection: some View {
-        VStack(spacing: 22) {
+        VStack(spacing: 28) {
             Text(questionTitle(for: currentStep))
-                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .font(.system(size: 30, weight: .bold, design: .rounded))
                 .minimumScaleFactor(0.6)
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)

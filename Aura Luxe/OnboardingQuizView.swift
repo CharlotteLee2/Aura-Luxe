@@ -123,12 +123,12 @@ struct OnboardingQuizView: View {
             }
         }
         .foregroundStyle(.primary)
-        .onChange(of: selectedConcerns) { newValue in
+        .onChange(of: selectedConcerns) { _, newValue in
             if !newValue.contains(.acne) {
                 singleAnswers[.breakoutFrequency] = nil
             }
         }
-        .onChange(of: visibleSteps.count) { newCount in
+        .onChange(of: visibleSteps.count) { _, newCount in
             if currentStepIndex >= newCount {
                 currentStepIndex = max(0, newCount - 1)
             }

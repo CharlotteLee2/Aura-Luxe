@@ -17,6 +17,30 @@ function stripHtmlText(text: string) {
   return text.replace(/\s+/g, " ").trim();
 }
 
+function normalizeImageUrl(value: string, pageUrl: string): string {
+  if (value.startsWith("//")) return `https:${value}`;
+  try {
+    return new URL(value, pageUrl).toString();
+  } catch {
+    return value;
+  }
+}
+
+function looksLikeLogoOrPlaceholder(url: string): boolean {
+  const lowered = url.toLowerCase();
+  const blocked = [
+    "logo",
+    "favicon",
+    "placeholder",
+    "sprite",
+    "icon",
+    "social-share",
+    "socialshare",
+    "apple-touch-icon",
+  ];
+  return blocked.some((token) => lowered.includes(token));
+}
+
 async function fetchHtml(url: string): Promise<string> {
   const resp = await fetch(url, {
     method: "GET",
@@ -100,11 +124,44 @@ function extractProductLinks(listHtml: string): string[] {
   return deduped;
 }
 
-function parseProductPage(html: string): { name: string; imageUrl: string } {
+function parseProductPage(
+  html: string,
+  pageUrl: string,
+): { name: string; imageUrl: string } {
   const $ = cheerio.load(html);
 
   let name = stripHtmlText($("h1").first().text() || "");
-  let imageUrl = stripHtmlText($("meta[property='og:image']").attr("content") || "");
+  const imageCandidates: string[] = [];
+
+  const addCandidate = (raw?: string) => {
+    const value = stripHtmlText(raw || "");
+    if (!value) return;
+    const normalized = normalizeImageUrl(value, pageUrl);
+    if (!imageCandidates.includes(normalized)) {
+      imageCandidates.push(normalized);
+    }
+  };
+
+  addCandidate($("meta[property='og:image:secure_url']").attr("content") || "");
+  addCandidate($("meta[property='og:image']").attr("content") || "");
+  addCandidate($("meta[name='twitter:image']").attr("content") || "");
+
+  $("img").each((_, el) => {
+    addCandidate($(el).attr("src"));
+    addCandidate($(el).attr("data-src"));
+    addCandidate($(el).attr("data-lazy-src"));
+    const srcset = $(el).attr("srcset") || $(el).attr("data-srcset") || "";
+    if (srcset) {
+      const first = srcset.split(",")[0]?.trim().split(" ")[0]?.trim();
+      if (first) addCandidate(first);
+    }
+  });
+
+  const regexImageUrls =
+    html.match(/https?:\/\/[^\s)"']+\.(?:jpg|jpeg|png|webp|avif)[^\s)"']*/gi) ?? [];
+  for (const match of regexImageUrls) {
+    addCandidate(match);
+  }
 
   // Fallback for proxy-markdown pages.
   if (!name) {
@@ -114,12 +171,11 @@ function parseProductPage(html: string): { name: string; imageUrl: string } {
       .find((s) => s.startsWith("# ") && !s.toLowerCase().includes("sephora"));
     if (line) name = line.replace(/^#\s+/, "").trim();
   }
-  if (!imageUrl) {
-    const match = html.match(/https?:\/\/www\.sephora\.com\/productimages\/[^\s)"']+/);
-    if (match) {
-      imageUrl = match[0];
-    }
-  }
+  const filteredImages = imageCandidates.filter((url) => !looksLikeLogoOrPlaceholder(url));
+  const imageUrl =
+    filteredImages.find((url) => url.toLowerCase().includes("productimages")) ||
+    filteredImages[0] ||
+    "";
 
   if (!name || !imageUrl) {
     throw new Error("Could not parse product page name/image.");
@@ -167,7 +223,7 @@ async function refreshCache(): Promise<
   for (let i = 0; i < 4; i++) {
     const link = productLinks[i];
     const productHtml = await fetchHtml(link);
-    const parsed = parseProductPage(productHtml);
+    const parsed = parseProductPage(productHtml, link);
 
     products.push({
       slot: i,

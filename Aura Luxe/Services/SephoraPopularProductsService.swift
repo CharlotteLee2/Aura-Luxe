@@ -21,9 +21,9 @@ final class SephoraPopularProductsService {
     private let client = SupabaseManage.shared.client
     // Replace with your deployed backend URL, for example:
     // https://your-service.onrender.com/refresh-sephora-popular
-    private let backendRefreshURLString = "https://YOUR_BACKEND_URL/refresh-sephora-popular"
+    private let backendRefreshURLString = "https://aura-luxe.onrender.com/refresh-sephora-popular"
     // Optional: set if your backend expects Authorization Bearer token.
-    private let backendRefreshToken = ""
+    private let backendRefreshToken = "efe231ff4ec00276bd61fb9d3dc9174d"
 
     func fetchCachedPopularProducts() async throws -> [SephoraPopularProduct] {
         let response = try await client

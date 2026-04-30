@@ -3,6 +3,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from supabase import create_client
+from urllib.parse import urljoin
 
 SUPABASE_URL = "https://ttftciroyrdbskixmynz.supabase.co"
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -64,6 +65,71 @@ def normalize_product_url(value):
     return value
 
 
+def normalize_image_url(value, page_url):
+    if not value:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    if value.startswith("//"):
+        return "https:" + value
+    return urljoin(page_url, value)
+
+
+def looks_like_logo_or_placeholder(url):
+    lowered = url.lower()
+    blocked_tokens = (
+        "logo",
+        "favicon",
+        "placeholder",
+        "sprite",
+        "icon",
+        "social-share",
+        "socialshare",
+        "apple-touch-icon",
+    )
+    return any(token in lowered for token in blocked_tokens)
+
+
+def extract_product_image(soup, html, page_url):
+    candidates = []
+
+    def add_candidate(raw):
+        normalized = normalize_image_url(raw, page_url)
+        if normalized and normalized not in candidates:
+            candidates.append(normalized)
+
+    for prop in ("og:image:secure_url", "og:image", "twitter:image"):
+        tag = soup.find("meta", attrs={"property": prop}) or soup.find(
+            "meta", attrs={"name": prop}
+        )
+        if tag:
+            add_candidate(tag.get("content"))
+
+    for img in soup.select("img"):
+        add_candidate(img.get("src"))
+        add_candidate(img.get("data-src"))
+        add_candidate(img.get("data-lazy-src"))
+        srcset = img.get("srcset") or img.get("data-srcset")
+        if srcset:
+            first = srcset.split(",")[0].strip().split(" ")[0].strip()
+            add_candidate(first)
+
+    regex_hits = re.findall(r"https?://[^\s\"')>]+", html)
+    for hit in regex_hits:
+        if any(ext in hit.lower() for ext in (".jpg", ".jpeg", ".png", ".webp", ".avif")):
+            add_candidate(hit)
+
+    filtered = [url for url in candidates if not looks_like_logo_or_placeholder(url)]
+    if not filtered:
+        return None
+
+    for url in filtered:
+        if "productimages" in url.lower():
+            return url
+    return filtered[0]
+
+
 def extract_product_links(html):
     soup = BeautifulSoup(html, "html.parser")
     links = []
@@ -96,10 +162,9 @@ def scrape_product(url):
     soup = BeautifulSoup(html, "html.parser")
 
     name_tag = soup.find("h1")
-    image_tag = soup.find("meta", attrs={"property": "og:image"})
 
     name = name_tag.get_text(strip=True) if name_tag else None
-    image_url = image_tag.get("content", "").strip() if image_tag else None
+    image_url = extract_product_image(soup, html, url)
 
     if not name or not image_url:
         raise ValueError(f"Could not parse product data from {url}")

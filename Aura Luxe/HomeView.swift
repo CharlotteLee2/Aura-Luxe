@@ -97,20 +97,22 @@ struct HomeView: View {
     private var trendingCard: some View {
         let hero = cachedPopularProducts.first(where: { $0.slot == 0 })
 
-        Button {
+        return Button {
             // TODO: open trending product
         } label: {
             ZStack(alignment: .bottomLeading) {
-                if let hero, let url = URL(string: hero.imageURL) {
-                    AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                    } placeholder: {
+                Group {
+                    if let hero, let url = URL(string: hero.imageURL) {
+                        AsyncImage(url: url) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            Color(red: 0.78, green: 0.88, blue: 0.86)
+                        }
+                    } else {
                         Color(red: 0.78, green: 0.88, blue: 0.86)
                     }
-                } else {
-                    Color(red: 0.78, green: 0.88, blue: 0.86)
                 }
                 .frame(height: 186)
                 .frame(maxWidth: .infinity)
@@ -147,16 +149,18 @@ struct HomeView: View {
                     // TODO: open popular product
                 } label: {
                     VStack(spacing: 8) {
-                        if let product, let url = URL(string: product.imageURL) {
-                            AsyncImage(url: url) { image in
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                            } placeholder: {
+                        Group {
+                            if let product, let url = URL(string: product.imageURL) {
+                                AsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
+                                    Color(red: 0.81, green: 0.91, blue: 0.89)
+                                }
+                            } else {
                                 Color(red: 0.81, green: 0.91, blue: 0.89)
                             }
-                        } else {
-                            Color(red: 0.81, green: 0.91, blue: 0.89)
                         }
                         .frame(width: 88, height: 88)
                         .clipShape(Circle())

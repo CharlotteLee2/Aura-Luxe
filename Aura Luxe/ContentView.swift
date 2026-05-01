@@ -41,7 +41,7 @@ struct ContentView: View {
                 } else if isResolvingDestination {
                     ProgressView()
                 } else if showHome {
-                    HomeView()
+                    MainTabView()
                 } else if showOnboarding {
                     OnboardingQuizView(
                         service: onboardingService,

@@ -5,12 +5,15 @@ struct SearchPageView: View {
     @FocusState private var fieldFocused: Bool
     @State private var searchResults: [RecommendedProduct] = []
     @State private var likedProductNames: Set<String> = []
+    @State private var boardedProductNames: Set<String> = []
     @State private var isSearching = false
     @State private var didInitialLoad = false
     @State private var searchTask: Task<Void, Never>? = nil
+    @State private var productForSaveSheet: RecommendedProduct? = nil
 
     private let searchService = ProductSearchService()
     private let likedService = LikedProductsService()
+    private let boardsService = BoardsService()
     private let categories = ["Cleanser", "Moisturizer", "Toner", "Serum"]
 
     var body: some View {
@@ -65,6 +68,11 @@ struct SearchPageView: View {
                 guard !Task.isCancelled else { return }
                 await performSearch(query: trimmed)
             }
+        }
+        .sheet(item: $productForSaveSheet, onDismiss: {
+            Task { boardedProductNames = (try? await boardsService.fetchBoardedProductNames()) ?? [] }
+        }) { product in
+            SaveToBoardSheet(productName: product.name)
         }
     }
 
@@ -291,6 +299,7 @@ struct SearchPageView: View {
 
     private func productCard(_ product: RecommendedProduct) -> some View {
         let isLiked = likedProductNames.contains(product.name)
+        let isBoarded = boardedProductNames.contains(product.name)
         return HStack(spacing: 14) {
             Group {
                 if let urlString = product.imageURL, let url = URL(string: urlString) {
@@ -324,22 +333,37 @@ struct SearchPageView: View {
 
             Spacer()
 
-            Button {
-                Task { await toggleLike(for: product) }
-            } label: {
-                Image(systemName: isLiked ? "heart.fill" : "heart")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(
-                        isLiked
-                            ? Color(red: 0.34, green: 0.53, blue: 0.52)
-                            : Color(red: 0.34, green: 0.53, blue: 0.52).opacity(0.4)
-                    )
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-                    .scaleEffect(isLiked ? 1.15 : 1.0)
-                    .animation(.spring(response: 0.25, dampingFraction: 0.55), value: isLiked)
+            VStack(spacing: 6) {
+                Button { productForSaveSheet = product } label: {
+                    Image(systemName: isBoarded ? "bookmark.fill" : "bookmark")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(
+                            isBoarded
+                                ? Color(red: 0.34, green: 0.53, blue: 0.52)
+                                : Color(red: 0.34, green: 0.53, blue: 0.52).opacity(0.4)
+                        )
+                        .frame(width: 44, height: 30)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    Task { await toggleLike(for: product) }
+                } label: {
+                    Image(systemName: isLiked ? "heart.fill" : "heart")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(
+                            isLiked
+                                ? Color(red: 0.34, green: 0.53, blue: 0.52)
+                                : Color(red: 0.34, green: 0.53, blue: 0.52).opacity(0.4)
+                        )
+                        .frame(width: 44, height: 30)
+                        .contentShape(Rectangle())
+                        .scaleEffect(isLiked ? 1.15 : 1.0)
+                        .animation(.spring(response: 0.25, dampingFraction: 0.55), value: isLiked)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(12)
         .frame(maxWidth: .infinity)
@@ -350,7 +374,10 @@ struct SearchPageView: View {
     // MARK: - Data
 
     private func loadLikedProductNames() async {
-        likedProductNames = (try? await likedService.fetchLikedProductNames()) ?? []
+        async let liked   = try? likedService.fetchLikedProductNames()
+        async let boarded = try? boardsService.fetchBoardedProductNames()
+        likedProductNames   = await liked ?? []
+        boardedProductNames = await boarded ?? []
     }
 
     private func performSearch(query: String) async {

@@ -45,7 +45,9 @@ final class ProductsViewModel: ObservableObject {
             let product = products(
                 name: ingredient,
                 ingredients: ingredients,
-                suitableSkinTypes: skinTypes
+                skinTypes: skinTypes,
+                brand: nil,
+                aliases: []
             )
 
             try await repository.save(product)

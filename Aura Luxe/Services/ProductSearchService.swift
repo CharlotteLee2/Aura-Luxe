@@ -7,7 +7,7 @@ struct ProductSearchService {
     func search(query: String, limit: Int = 50) async throws -> [RecommendedProduct] {
         let response = try await client
             .from("products")
-            .select("product_name, ingredients, skin_types, image_url")
+            .select("product_name, brand, ingredients, skin_types, image_url, aliases")
             .ilike("product_name", pattern: "%\(query)%")
             .limit(limit)
             .execute()

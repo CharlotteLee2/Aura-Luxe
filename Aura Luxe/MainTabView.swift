@@ -32,41 +32,39 @@ struct MainTabView: View {
     @State private var selectedTab: Tab = .home
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Group {
-                switch selectedTab {
-                case .home:
-                    HomeView()
-                case .myProducts:
-                    MyProductsPageView()
-                case .camera:
-                    CameraPageView()
-                case .habitTracker:
-                    HabitTrackerPageView()
-                case .search:
-                    SearchPageView()
-                }
+        Group {
+            switch selectedTab {
+            case .home:
+                HomeView()
+            case .myProducts:
+                MyProductsPageView()
+            case .camera:
+                CameraPageView()
+            case .habitTracker:
+                HabitTrackerPageView()
+            case .search:
+                SearchPageView()
             }
-
-            tabBar
-                .padding(.horizontal, 16)
-                .padding(.bottom, 6)
         }
-        .ignoresSafeArea(edges: .bottom)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            tabBar
+        }
     }
 
     private var tabBar: some View {
-        HStack(spacing: 4) {
-            ForEach(Tab.allCases, id: \.title) { tab in
-                tabItem(tab)
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 4) {
+                ForEach(Tab.allCases, id: \.title) { tab in
+                    tabItem(tab)
+                }
             }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 26)
-                .fill(Color.white)
-                .shadow(color: .black.opacity(0.1), radius: 16, x: 0, y: 6)
+            Color.white
+                .ignoresSafeArea(edges: .bottom)
         )
     }
 

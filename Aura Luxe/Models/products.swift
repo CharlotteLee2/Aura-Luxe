@@ -10,11 +10,15 @@ import Foundation
 struct products: Codable {
     let name: String
     let ingredients: [String]
-    let suitableSkinTypes: [String]
+    let skinTypes: [String]
+    let brand: String?
+    let aliases: [String]
 
     enum CodingKeys: String, CodingKey {
-        case name
+        case name       = "product_name"
         case ingredients
-        case suitableSkinTypes = "suitable_skin_types"
+        case skinTypes  = "skin_types"
+        case brand
+        case aliases
     }
 }

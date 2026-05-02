@@ -16,6 +16,7 @@ struct RegistrationView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var successMessage: String?
+    @State private var isPasswordVisible = false
 
     private let authService: AuthServicing
     private let onSignInTap: () -> Void
@@ -56,7 +57,6 @@ struct RegistrationView: View {
     }
 
     private var isEmailValid: Bool {
-        // Lightweight prototype validation.
         trimmedEmail.contains("@") && trimmedEmail.contains(".")
     }
 
@@ -65,7 +65,6 @@ struct RegistrationView: View {
     }
 
     private var isPhoneValid: Bool {
-        // Simple "valid phone" check: 10-15 digits (covers most E.164 lengths).
         (10...15).contains(normalizedPhoneDigits.count)
     }
 
@@ -90,69 +89,67 @@ struct RegistrationView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.92, green: 0.97, blue: 0.96),
-                    Color(red: 0.90, green: 0.95, blue: 0.98),
-                    Color(red: 0.95, green: 0.99, blue: 0.97),
+                    Color(red: 0.94, green: 0.98, blue: 0.97),
+                    Color(red: 0.88, green: 0.94, blue: 0.95),
                 ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                startPoint: .top,
+                endPoint: .bottom
             )
             .ignoresSafeArea()
 
             GeometryReader { geometry in
-                let sectionSpacing: CGFloat = 12
-                let fieldSpacing: CGFloat = 16
+                let fieldSpacing: CGFloat = 20
                 let bottomSpacing: CGFloat = 10
 
                 VStack(spacing: 0) {
-                    // Top section (fixed)
-                    VStack(spacing: sectionSpacing) {
-                        Text("Registration")
-                            .font(.system(size: 24, weight: .medium, design: .rounded))
+                    VStack(spacing: 16) {
+                        Text("Create Account")
+                            .font(.system(size: 28, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color(red: 0.14, green: 0.20, blue: 0.20))
                             .frame(maxWidth: .infinity, alignment: .center)
 
                         HStack(spacing: 0) {
-                            methodPill(title: "Phone", isSelected: registrationMethod == .phone) {
-                                registrationMethod = .phone
-                            }
                             methodPill(title: "Email", isSelected: registrationMethod == .email) {
                                 registrationMethod = .email
+                            }
+                            methodPill(title: "Phone", isSelected: registrationMethod == .phone) {
+                                registrationMethod = .phone
                             }
                         }
                         .padding(4)
                         .frame(maxWidth: .infinity)
-                        .background(Color.white.opacity(0.7))
+                        .background(Color(red: 0.84, green: 0.92, blue: 0.92))
                         .clipShape(Capsule())
                     }
+                    .padding(.top, 24)
 
-                    // Middle section (centered-ish)
                     Spacer(minLength: 0)
 
                     VStack(alignment: .leading, spacing: fieldSpacing) {
                         if registrationMethod == .email {
                             fieldLabel("Email")
-                            roundedTextField(text: $email, isSecure: false, placeholder: "")
+                            roundedTextField(text: $email, placeholder: "")
                                 .textInputAutocapitalization(.never)
                                 .keyboardType(.emailAddress)
                                 .autocorrectionDisabled()
                         } else {
                             fieldLabel("Phone Number")
-                            roundedTextField(text: $phoneNumber, isSecure: false, placeholder: "")
+                            roundedTextField(text: $phoneNumber, placeholder: "")
                                 .textInputAutocapitalization(.never)
                                 .keyboardType(.phonePad)
                                 .autocorrectionDisabled()
                         }
 
                         fieldLabel("First Name")
-                        roundedTextField(text: $firstName, isSecure: false, placeholder: "")
+                        roundedTextField(text: $firstName, placeholder: "")
                             .textInputAutocapitalization(.words)
 
                         fieldLabel("Last Name")
-                        roundedTextField(text: $lastName, isSecure: false, placeholder: "")
+                        roundedTextField(text: $lastName, placeholder: "")
                             .textInputAutocapitalization(.words)
 
                         fieldLabel("Password")
-                        roundedTextField(text: $password, isSecure: true, placeholder: "")
+                        passwordField(text: $password)
 
                         HStack(spacing: 8) {
                             passwordRule(
@@ -176,7 +173,6 @@ struct RegistrationView: View {
 
                     Spacer(minLength: 0)
 
-                    // Bottom section (anchored)
                     VStack(spacing: bottomSpacing) {
                         Button {
                             Task {
@@ -185,29 +181,31 @@ struct RegistrationView: View {
                         } label: {
                             Group {
                                 if isLoading {
-                                    ProgressView()
+                                    ProgressView().tint(.white)
                                 } else {
                                     Text("Next")
                                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                                 }
                             }
                             .frame(maxWidth: .infinity)
-                            .frame(height: 50)
+                            .frame(height: 52)
                         }
                         .background(Color(red: 0.30, green: 0.63, blue: 0.55))
                         .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .shadow(color: Color(red: 0.30, green: 0.63, blue: 0.55).opacity(0.25), radius: 8, x: 0, y: 4)
                         .disabled(isLoading || !isFormValid)
                         .opacity((isLoading || !isFormValid) ? 0.65 : 1)
 
                         HStack(spacing: 4) {
-                            Text("Do you already have an account?")
+                            Text("Already have an account?")
                                 .font(.system(size: 14, weight: .regular, design: .rounded))
+                                .foregroundStyle(Color(red: 0.39, green: 0.48, blue: 0.48))
                             Button("Sign in") {
                                 onSignInTap()
                             }
                             .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(Color(red: 0.30, green: 0.63, blue: 0.55))
                             .underline()
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -251,37 +249,67 @@ struct RegistrationView: View {
             Text(title)
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(isSelected ? Color.white : Color.clear)
+                .padding(.vertical, 9)
+                .background(isSelected ? Color(red: 0.30, green: 0.63, blue: 0.55) : Color.clear)
                 .clipShape(Capsule())
+                .foregroundStyle(isSelected ? .white : Color(red: 0.45, green: 0.58, blue: 0.58))
         }
-        .foregroundStyle(.black)
     }
 
     private func fieldLabel(_ title: String) -> some View {
         Text(title)
-            .font(.system(size: 17, weight: .medium, design: .rounded))
-            .foregroundStyle(.black)
+            .font(.system(size: 14, weight: .medium, design: .rounded))
+            .foregroundStyle(Color(red: 0.39, green: 0.48, blue: 0.48))
     }
 
-    private func roundedTextField(text: Binding<String>, isSecure: Bool, placeholder: String) -> some View {
-        Group {
-            if isSecure {
-                SecureField(placeholder, text: text)
-            } else {
-                TextField(placeholder, text: text)
+    private func roundedTextField(text: Binding<String>, placeholder: String) -> some View {
+        TextField(placeholder, text: text)
+            .foregroundStyle(Color(red: 0.14, green: 0.20, blue: 0.20))
+            .padding(.horizontal, 16)
+            .frame(height: 48)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.white)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color(red: 0.70, green: 0.82, blue: 0.82), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+    }
+
+    private func passwordField(text: Binding<String>) -> some View {
+        HStack(spacing: 0) {
+            Group {
+                if isPasswordVisible {
+                    TextField("", text: text)
+                        .foregroundStyle(Color(red: 0.14, green: 0.20, blue: 0.20))
+                } else {
+                    SecureField("", text: text)
+                        .foregroundStyle(Color(red: 0.14, green: 0.20, blue: 0.20))
+                }
+            }
+            .padding(.leading, 16)
+            .frame(height: 48)
+
+            Button {
+                isPasswordVisible.toggle()
+            } label: {
+                Image(systemName: isPasswordVisible ? "eye" : "eye.slash")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color(red: 0.39, green: 0.48, blue: 0.48))
+                    .frame(width: 44, height: 48)
             }
         }
-        .padding(.horizontal, 16)
-        .frame(height: 48)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.9))
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.white)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(red: 0.74, green: 0.85, blue: 0.85), lineWidth: 1.5)
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color(red: 0.70, green: 0.82, blue: 0.82), lineWidth: 1)
         )
+        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 
     private var minLengthColor: Color {
@@ -315,8 +343,8 @@ struct RegistrationView: View {
 
     private func socialIcon(_ symbol: String) -> some View {
         Image(systemName: symbol)
-            .font(.system(size: 30, weight: .regular))
-            .foregroundStyle(.black)
+            .font(.system(size: 26, weight: .regular))
+            .foregroundStyle(Color(red: 0.39, green: 0.48, blue: 0.48))
     }
 
     private func registerUser() async {

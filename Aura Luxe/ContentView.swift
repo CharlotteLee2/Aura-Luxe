@@ -9,15 +9,14 @@ import SwiftUI
 
 struct ContentView: View {
     private enum AuthScreen {
+        case landing
         case register
         case signIn
     }
 
-    @State private var showSplash = true
-    @State private var authScreen: AuthScreen = .register
+    @State private var authScreen: AuthScreen = .landing
     @State private var showHome = false
     @State private var showOnboarding = false
-    /// Shown on Sign In only after a successful registration in this session.
     @State private var showAccountCreatedBanner = false
     @State private var isResolvingDestination = false
 
@@ -32,13 +31,7 @@ struct ContentView: View {
             Color(.systemBackground).ignoresSafeArea()
 
             Group {
-                if showSplash {
-                    VStack {
-                        Text("Auraluxe")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                    }
-                } else if isResolvingDestination {
+                if isResolvingDestination {
                     ProgressView()
                 } else if showHome {
                     MainTabView()
@@ -52,6 +45,8 @@ struct ContentView: View {
                     )
                 } else {
                     switch authScreen {
+                    case .landing:
+                        landingView
                     case .register:
                         RegistrationView(
                             onSignInTap: {
@@ -81,12 +76,66 @@ struct ContentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .task {
-            try? await Task.sleep(for: .seconds(5))
-            await MainActor.run {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    showSplash = false
+    }
+
+    private var landingView: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.94, green: 0.98, blue: 0.97),
+                    Color(red: 0.88, green: 0.94, blue: 0.95),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                Spacer()
+
+                VStack(spacing: 10) {
+                    Text("Auraluxe")
+                        .font(.system(size: 44, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color(red: 0.14, green: 0.20, blue: 0.20))
+                    Text("Your personalized skincare guide")
+                        .font(.system(size: 15, weight: .regular, design: .rounded))
+                        .foregroundStyle(Color(red: 0.39, green: 0.48, blue: 0.48))
                 }
+
+                Spacer()
+
+                VStack(spacing: 14) {
+                    Button {
+                        authScreen = .signIn
+                    } label: {
+                        Text("Sign In")
+                            .font(.system(size: 17, weight: .semibold, design: .rounded))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                    }
+                    .background(Color(red: 0.30, green: 0.63, blue: 0.55))
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .shadow(color: Color(red: 0.30, green: 0.63, blue: 0.55).opacity(0.25), radius: 8, x: 0, y: 4)
+
+                    Button {
+                        authScreen = .register
+                    } label: {
+                        Text("Register")
+                            .font(.system(size: 17, weight: .semibold, design: .rounded))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color(red: 0.30, green: 0.63, blue: 0.55), lineWidth: 1.5)
+                            )
+                    }
+                    .foregroundStyle(Color(red: 0.30, green: 0.63, blue: 0.55))
+                }
+                .padding(.horizontal, 32)
+                .padding(.bottom, 52)
             }
         }
     }
@@ -109,7 +158,6 @@ struct ContentView: View {
             }
         } catch {
             await MainActor.run {
-                // If completion lookup fails, force onboarding so the user can continue.
                 showOnboarding = true
             }
         }
@@ -119,4 +167,3 @@ struct ContentView: View {
         }
     }
 }
-

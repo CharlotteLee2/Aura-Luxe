@@ -279,7 +279,7 @@ struct SearchPageView: View {
                 .frame(width: 86, height: 96)
                 .overlay(
                     Image(systemName: "sparkles")
-                        .foregroundStyle(Color.white.opacity(0.9))
+                        .foregroundStyle(Color(red: 0.34, green: 0.53, blue: 0.52).opacity(0.6))
                 )
             VStack(alignment: .leading, spacing: 8) {
                 RoundedRectangle(cornerRadius: 6)
@@ -312,7 +312,7 @@ struct SearchPageView: View {
                     Color(red: 0.82, green: 0.90, blue: 0.90)
                         .overlay(
                             Image(systemName: "sparkles")
-                                .foregroundStyle(Color.white.opacity(0.9))
+                                .foregroundStyle(Color(red: 0.34, green: 0.53, blue: 0.52).opacity(0.6))
                         )
                 }
             }

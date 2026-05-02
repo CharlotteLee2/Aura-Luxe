@@ -6,34 +6,41 @@ struct ScanResultSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var showSaveSheet = false
-    @State private var showTimePickerSheet = false
+    @State private var showAddToRoutineSheet = false
     @State private var showIngredientsSheet = false
-    @State private var selectedTime: TimeOfUseOption = .both
-    @State private var isAddingToRoutine = false
     @State private var addedToRoutine = false
-    @State private var routineError: String?
-
-    private let routineService = SkincareRoutineService()
 
     var body: some View {
         NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    productHeader
-                    Divider().padding(.horizontal, 20).padding(.vertical, 4)
-                    if !result.skinCompatibility.note.isEmpty {
-                        compatibilitySection
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.94, green: 0.98, blue: 0.97),
+                        Color(red: 0.88, green: 0.94, blue: 0.95),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        productHeader
+                        Divider().padding(.horizontal, 20).padding(.vertical, 4)
+                        if !result.skinCompatibility.note.isEmpty {
+                            compatibilitySection
+                        }
+                        if !result.ingredientHighlights.isEmpty {
+                            highlightsSection
+                        }
+                        if !result.conflicts.isEmpty {
+                            conflictsSection
+                        }
+                        actionButtons
+                            .padding(.top, 8)
                     }
-                    if !result.ingredientHighlights.isEmpty {
-                        highlightsSection
-                    }
-                    if !result.conflicts.isEmpty {
-                        conflictsSection
-                    }
-                    actionButtons
-                        .padding(.top, 8)
+                    .padding(.bottom, 40)
                 }
-                .padding(.bottom, 40)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -43,18 +50,22 @@ struct ScanResultSheet: View {
                 }
             }
         }
+        .environment(\.colorScheme, .light)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .sheet(isPresented: $showSaveSheet) {
             SaveToBoardSheet(productName: result.product.name)
+                .environment(\.colorScheme, .light)
         }
-        .sheet(isPresented: $showTimePickerSheet) {
-            RoutineTimePickerSheet(selectedTime: $selectedTime) {
-                Task { await addToRoutine() }
-            }
+        .sheet(isPresented: $showAddToRoutineSheet) {
+            AddToRoutineSheet(productName: result.product.name, onAdded: {
+                withAnimation { addedToRoutine = true }
+            })
+            .environment(\.colorScheme, .light)
         }
         .sheet(isPresented: $showIngredientsSheet) {
             IngredientsListSheet(ingredients: result.product.ingredients)
+                .environment(\.colorScheme, .light)
         }
     }
 
@@ -211,19 +222,15 @@ struct ScanResultSheet: View {
                 .padding(.horizontal, 20)
             } else {
                 Button {
-                    showTimePickerSheet = true
+                    showAddToRoutineSheet = true
                 } label: {
-                    HStack(spacing: 6) {
-                        if isAddingToRoutine { ProgressView().tint(.white) }
-                        Text("Add to Routine")
-                    }
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(Color(red: 0.30, green: 0.63, blue: 0.55)))
+                    Text("Add to Routine")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color(red: 0.30, green: 0.63, blue: 0.55)))
                 }
-                .disabled(isAddingToRoutine)
                 .padding(.horizontal, 20)
             }
 
@@ -283,94 +290,9 @@ struct ScanResultSheet: View {
         }
     }
 
-    private func addToRoutine() async {
-        isAddingToRoutine = true
-        do {
-            let userID = try await routineService.authenticatedUserID()
-            let entry = SkincareRoutineEntry(user_id: userID, product_name: result.product.name, time_of_use: selectedTime.rawValue)
-            try await routineService.save(entries: [entry])
-            withAnimation { addedToRoutine = true }
-        } catch {
-            routineError = "Couldn't add to routine. Please try again."
-        }
-        isAddingToRoutine = false
-    }
 }
 
 // MARK: - Supporting Views
-
-private enum TimeOfUseOption: String, CaseIterable {
-    case morning, night, both
-    var label: String {
-        switch self { case .morning: "Morning"; case .night: "Night"; case .both: "Both" }
-    }
-}
-
-private struct RoutineTimePickerSheet: View {
-    @Binding var selectedTime: TimeOfUseOption
-    let onConfirm: () -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                Text("When will you use this?")
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color(red: 0.14, green: 0.20, blue: 0.20))
-
-                HStack(spacing: 0) {
-                    ForEach(TimeOfUseOption.allCases, id: \.self) { option in
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) { selectedTime = option }
-                        } label: {
-                            Text(option.label)
-                                .font(.system(size: 15, weight: selectedTime == option ? .semibold : .medium, design: .rounded))
-                                .foregroundStyle(
-                                    selectedTime == option
-                                        ? Color(red: 0.34, green: 0.53, blue: 0.52)
-                                        : Color(red: 0.39, green: 0.48, blue: 0.48)
-                                )
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .background(
-                                    selectedTime == option
-                                        ? RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.95))
-                                            .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
-                                        : nil
-                                )
-                        }
-                    }
-                }
-                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.6)))
-                .padding(.horizontal, 24)
-
-                Button {
-                    dismiss()
-                    onConfirm()
-                } label: {
-                    Text("Add to Routine")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Color(red: 0.30, green: 0.63, blue: 0.55)))
-                }
-                .padding(.horizontal, 24)
-
-                Spacer()
-            }
-            .padding(.top, 32)
-            .presentationDetents([.height(280)])
-            .presentationDragIndicator(.visible)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundStyle(Color(red: 0.30, green: 0.63, blue: 0.55))
-                }
-            }
-        }
-    }
-}
 
 private struct IngredientsListSheet: View {
     let ingredients: [String]
@@ -378,25 +300,41 @@ private struct IngredientsListSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(Array(ingredients.enumerated()), id: \.offset) { _, ingredient in
-                        Text(ingredient)
-                            .font(.system(size: 14, design: .rounded))
-                            .foregroundStyle(Color(red: 0.14, green: 0.20, blue: 0.20))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 6)
-                        Divider().padding(.horizontal, 20)
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.94, green: 0.98, blue: 0.97),
+                        Color(red: 0.88, green: 0.94, blue: 0.95),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(Array(ingredients.enumerated()), id: \.offset) { _, ingredient in
+                            Text(ingredient)
+                                .font(.system(size: 14, design: .rounded))
+                                .foregroundStyle(Color(red: 0.14, green: 0.20, blue: 0.20))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 6)
+                            Divider()
+                                .overlay(Color(red: 0.78, green: 0.88, blue: 0.88))
+                                .padding(.horizontal, 20)
+                        }
                     }
+                    .padding(.top, 8)
+                    .padding(.bottom, 32)
                 }
-                .padding(.top, 8)
             }
             .navigationTitle("All Ingredients")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
                         .foregroundStyle(Color(red: 0.30, green: 0.63, blue: 0.55))
                 }
             }

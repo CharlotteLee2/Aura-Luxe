@@ -21,7 +21,7 @@ private struct RoutineEntry: Identifiable {
 struct SkincareRoutineView: View {
     private let onCompletion: () -> Void
     private let searchService = ProductSearchService()
-    private let routineService = SkincareRoutineService()
+    private let habitService = HabitTrackerService()
 
     @State private var searchText = ""
     @FocusState private var searchFocused: Bool
@@ -407,15 +407,21 @@ struct SkincareRoutineView: View {
         errorMessage = nil
         defer { isSaving = false }
         do {
-            let userID = try await routineService.authenticatedUserID()
-            let entries = addedProducts.map {
-                SkincareRoutineEntry(
-                    user_id: userID,
-                    product_name: $0.productName,
-                    time_of_use: $0.timeOfUse.rawValue
+            for (index, entry) in addedProducts.enumerated() {
+                let timeOfUse: String
+                switch entry.timeOfUse {
+                case .morning: timeOfUse = "am"
+                case .night:   timeOfUse = "pm"
+                case .both:    timeOfUse = "both"
+                }
+                _ = try await habitService.addRoutineStep(
+                    productName: entry.productName,
+                    timeOfUse: timeOfUse,
+                    frequency: .daily,
+                    daysOfWeek: nil,
+                    existingCount: index
                 )
             }
-            try await routineService.save(entries: entries)
             await MainActor.run { onCompletion() }
         } catch {
             errorMessage = error.localizedDescription

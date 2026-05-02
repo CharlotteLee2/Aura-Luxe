@@ -434,6 +434,8 @@
 				DEVELOPMENT_TEAM = 47P92UZU8C;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Aura Luxe uses your camera to scan skincare product labels.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Aura Luxe uses your photo library to track your skin's progress over time";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -466,6 +468,8 @@
 				DEVELOPMENT_TEAM = 47P92UZU8C;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Aura Luxe uses your camera to scan skincare product labels.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Aura Luxe uses your photo library to track your skin's progress over time";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

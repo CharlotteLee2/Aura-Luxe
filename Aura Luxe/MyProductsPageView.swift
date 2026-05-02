@@ -12,6 +12,7 @@ struct MyProductsPageView: View {
     @State private var isLoadingBoards = true
     @State private var didInitialLoad = false
     @State private var productForSaveSheet: RecommendedProduct? = nil
+    @State private var productForRoutineSheet: RecommendedProduct? = nil
     @State private var selectedBoard: Board? = nil
 
     private let likedService = LikedProductsService()
@@ -61,6 +62,9 @@ struct MyProductsPageView: View {
             }
         }) { product in
             SaveToBoardSheet(productName: product.name)
+        }
+        .sheet(item: $productForRoutineSheet) { product in
+            AddToRoutineSheet(productName: product.name)
         }
         .sheet(item: $selectedBoard) { board in
             BoardDetailView(board: board)
@@ -251,6 +255,23 @@ struct MyProductsPageView: View {
         .frame(maxWidth: .infinity)
         .background(RoundedRectangle(cornerRadius: 18).fill(Color.white.opacity(0.84)))
         .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color(red: 0.78, green: 0.88, blue: 0.88), lineWidth: 1))
+        .contextMenu {
+            Button {
+                productForRoutineSheet = product
+            } label: {
+                Label("Add to Routine", systemImage: "plus.circle")
+            }
+            Button {
+                productForSaveSheet = product
+            } label: {
+                Label("Save to Board", systemImage: "bookmark")
+            }
+            Button(role: .destructive) {
+                Task { await unlike(product: product) }
+            } label: {
+                Label("Remove from Liked", systemImage: "heart.slash")
+            }
+        }
     }
 
     // MARK: - Boards tab

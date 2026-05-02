@@ -112,12 +112,17 @@ struct SearchPageView: View {
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(Color(red: 0.34, green: 0.53, blue: 0.52))
 
-            TextField("Search products...", text: $searchText)
-                .font(.system(size: 15, weight: .regular, design: .rounded))
-                .foregroundStyle(Color(red: 0.14, green: 0.20, blue: 0.20))
-                .focused($fieldFocused)
-                .submitLabel(.search)
-                .autocorrectionDisabled()
+            TextField(
+                "",
+                text: $searchText,
+                prompt: Text("Search products...")
+                    .foregroundColor(Color(red: 0.39, green: 0.48, blue: 0.48))
+            )
+            .font(.system(size: 15, weight: .regular, design: .rounded))
+            .foregroundStyle(Color(red: 0.14, green: 0.20, blue: 0.20))
+            .focused($fieldFocused)
+            .submitLabel(.search)
+            .autocorrectionDisabled()
 
             if !searchText.isEmpty {
                 Button {

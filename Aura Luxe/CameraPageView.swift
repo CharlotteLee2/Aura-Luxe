@@ -11,9 +11,10 @@ struct CameraPageView: View {
     @State private var compareBothResults: (ScannedProductResult, ScannedProductResult)?
     @State private var showCompareView = false
     @State private var ocrIngredients: [String] = []
-    @State private var showAddUnknown = false
-    @State private var errorMessage: String?
-    @State private var showError = false
+    @State private var capturedImage: UIImage?
+    @State private var ocrBrand: String = ""
+    @State private var ocrName: String = ""
+    @State private var showNotFoundSheet = false
 
     var body: some View {
         ZStack {
@@ -63,13 +64,16 @@ struct CameraPageView: View {
                 CompareProductsView(productA: a, productB: b)
             }
         }
-        .sheet(isPresented: $showAddUnknown) {
-            AddUnknownProductView(prefilledIngredients: ocrIngredients)
-        }
-        .alert("Scan Error", isPresented: $showError, presenting: errorMessage) { _ in
-            Button("OK") { errorMessage = nil }
-        } message: { msg in
-            Text(msg)
+        .sheet(isPresented: $showNotFoundSheet) {
+            if let img = capturedImage {
+                ProductNotFoundSheet(
+                    ocrName: ocrName,
+                    ocrBrand: ocrBrand,
+                    ocrIngredients: ocrIngredients,
+                    capturedImage: img,
+                    onRetry: {}
+                )
+            }
         }
     }
 
@@ -185,34 +189,45 @@ struct CameraPageView: View {
 
     private func handleCapture(_ image: UIImage) {
         isProcessing = true
+        capturedImage = image
         Task {
             do {
                 let service = OCRProductScanService()
                 var result: ScannedProductResult?
+                var extractedBrand = ""
+                var extractedName = ""
+                var extractedIngredients: [String] = []
 
                 if scanMode == .product {
                     let observations = await OCRScan.shared.recognizeTextWithBounds(from: image)
                     let (brand, name) = ProductModeParser().parse(observations: observations)
+                    extractedBrand = brand ?? ""
+                    extractedName = name
                     result = try await service.searchProduct(productName: name, brand: brand)
                 } else {
                     let lines = await OCRScan.shared.recognizeText(from: image)
                     let ingredients = IngredientModeParser().parse(lines: lines)
+                    extractedIngredients = ingredients
                     result = try await service.searchByIngredients(ingredients)
-                    if result == nil && !ingredients.isEmpty {
-                        await MainActor.run {
-                            ocrIngredients = ingredients
-                            showAddUnknown = true
-                            isProcessing = false
-                        }
-                        return
+                    // No ingredient list found — fall back to product-name search using
+                    // the same extraction path as product mode.
+                    if ingredients.isEmpty {
+                        let observations = await OCRScan.shared.recognizeTextWithBounds(from: image)
+                        let (brand, name) = ProductModeParser().parse(observations: observations)
+                        extractedBrand = brand ?? ""
+                        extractedName = name
+                        result = try await service.searchProduct(productName: name, brand: brand)
                     }
                 }
 
                 await MainActor.run {
                     isProcessing = false
+                    ocrBrand = extractedBrand
+                    ocrName = extractedName
+                    ocrIngredients = extractedIngredients
+
                     guard let result else {
-                        errorMessage = "Product not found. Try scanning the ingredient list instead."
-                        showError = true
+                        showNotFoundSheet = true
                         return
                     }
 
@@ -228,8 +243,7 @@ struct CameraPageView: View {
             } catch {
                 await MainActor.run {
                     isProcessing = false
-                    errorMessage = "Scan failed. Please try again."
-                    showError = true
+                    showNotFoundSheet = true
                 }
             }
         }

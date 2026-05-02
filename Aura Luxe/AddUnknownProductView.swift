@@ -1,11 +1,15 @@
 import SwiftUI
+import Supabase
 
 struct AddUnknownProductView: View {
     let prefilledIngredients: [String]
+    let prefilledName: String
+    let prefilledBrand: String
+    let capturedImage: UIImage?
 
     @Environment(\.dismiss) private var dismiss
-    @State private var productName = ""
-    @State private var brandName = ""
+    @State private var productName: String
+    @State private var brandName: String
     @State private var ingredients: [String]
     @State private var selectedSkinTypes: Set<String> = []
     @State private var isSaving = false
@@ -13,10 +17,22 @@ struct AddUnknownProductView: View {
     @State private var showSuccess = false
 
     private let repository = productRepository()
+    private let likedService = LikedProductsService()
+    private let client = SupabaseManage.shared.client
     private let skinTypes = ["Oily", "Dry", "Sensitive", "Combination", "All"]
 
-    init(prefilledIngredients: [String]) {
+    init(
+        prefilledIngredients: [String] = [],
+        prefilledName: String = "",
+        prefilledBrand: String = "",
+        capturedImage: UIImage? = nil
+    ) {
         self.prefilledIngredients = prefilledIngredients
+        self.prefilledName = prefilledName
+        self.prefilledBrand = prefilledBrand
+        self.capturedImage = capturedImage
+        _productName = State(initialValue: prefilledName)
+        _brandName = State(initialValue: prefilledBrand)
         _ingredients = State(initialValue: prefilledIngredients)
     }
 
@@ -37,6 +53,7 @@ struct AddUnknownProductView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 18) {
                         headerSection
+                        if let img = capturedImage { photoThumbnail(img) }
                         productDetailsSection
                         ingredientsSection
                         skinTypesSection
@@ -67,6 +84,32 @@ struct AddUnknownProductView: View {
     }
 
     // MARK: - Sections
+
+    private func photoThumbnail(_ image: UIImage) -> some View {
+        HStack {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 72, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Color(red: 0.78, green: 0.88, blue: 0.88), lineWidth: 1)
+                )
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Scan photo")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color(red: 0.39, green: 0.48, blue: 0.48))
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+                Text("Will be saved with this product")
+                    .font(.system(size: 12, design: .rounded))
+                    .foregroundStyle(Color(red: 0.39, green: 0.48, blue: 0.48))
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+    }
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -196,17 +239,34 @@ struct AddUnknownProductView: View {
         errorMessage = nil
         isSaving = true
 
-        let skinTypeValues = selectedSkinTypes.isEmpty ? ["all"] : selectedSkinTypes.map { $0.lowercased() }
-        let product = products(
-            name: trimmedName,
-            ingredients: ingredients,
-            skinTypes: skinTypeValues,
-            brand: brandName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : brandName.trimmingCharacters(in: .whitespaces),
-            aliases: []
-        )
-
         do {
+            // Upload photo to Supabase Storage if available
+            var uploadedImageURL: String? = nil
+            if let img = capturedImage, let jpegData = img.jpegData(compressionQuality: 0.8) {
+                let path = "\(UUID().uuidString).jpg"
+                try await client.storage
+                    .from("product-images")
+                    .upload(path, data: jpegData, options: .init(contentType: "image/jpeg"))
+                uploadedImageURL = try client.storage
+                    .from("product-images")
+                    .getPublicURL(path: path)
+                    .absoluteString
+            }
+
+            let skinTypeValues = selectedSkinTypes.isEmpty ? ["all"] : selectedSkinTypes.map { $0.lowercased() }
+            let product = products(
+                name: trimmedName,
+                ingredients: ingredients,
+                skinTypes: skinTypeValues,
+                brand: brandName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : brandName.trimmingCharacters(in: .whitespaces),
+                aliases: [],
+                imageURL: uploadedImageURL
+            )
+
             try await repository.save(product)
+            // Auto-like so the product appears in the user's My Products page
+            try await likedService.like(productName: trimmedName)
+
             withAnimation { showSuccess = true }
             try? await Task.sleep(nanoseconds: 800_000_000)
             dismiss()

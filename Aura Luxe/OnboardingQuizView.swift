@@ -11,6 +11,7 @@ struct OnboardingQuizView: View {
         case breakoutFrequency
         case routine
         case preferences
+        case reminders
     }
 
     private enum ConcernOption: String, CaseIterable {
@@ -31,6 +32,7 @@ struct OnboardingQuizView: View {
     @State private var selectedConcerns: Set<ConcernOption> = []
     @State private var isSubmitting = false
     @State private var errorMessage: String?
+    @State private var showRoutineScreen = false
 
     init(
         service: OnboardingQuizServicing = SupabaseOnboardingQuizService(),
@@ -52,7 +54,7 @@ struct OnboardingQuizView: View {
             steps.append(.breakoutFrequency)
         }
 
-        steps.append(contentsOf: [.routine, .preferences])
+        steps.append(contentsOf: [.routine, .preferences, .reminders])
         return steps
     }
 
@@ -79,7 +81,7 @@ struct OnboardingQuizView: View {
 
     private var canContinue: Bool {
         switch currentStep {
-        case .skinAfterCleansing, .oilyFrequency, .sensitivity, .breakoutFrequency, .routine, .preferences:
+        case .skinAfterCleansing, .oilyFrequency, .sensitivity, .breakoutFrequency, .routine, .preferences, .reminders:
             return singleAnswers[currentStep] != nil
         case .concerns:
             return !selectedConcerns.isEmpty && selectedConcerns.count <= 3
@@ -132,6 +134,9 @@ struct OnboardingQuizView: View {
             if currentStepIndex >= newCount {
                 currentStepIndex = max(0, newCount - 1)
             }
+        }
+        .fullScreenCover(isPresented: $showRoutineScreen) {
+            SkincareRoutineView(onCompletion: onCompletion)
         }
     }
 
@@ -287,6 +292,8 @@ struct OnboardingQuizView: View {
             return "What's your current routine like?"
         case .preferences:
             return "Any product preferences?"
+        case .reminders:
+            return "How often do you want skincare reminders?"
         }
     }
 
@@ -333,6 +340,13 @@ struct OnboardingQuizView: View {
                 "Luxury",
                 "Clean ingredients",
                 "No preference",
+            ]
+        case .reminders:
+            return [
+                "Every morning",
+                "Morning & night",
+                "Custom reminders",
+                "No reminders",
             ]
         }
     }
@@ -386,11 +400,12 @@ struct OnboardingQuizView: View {
                 concerns: selectedConcerns.map(\.rawValue).sorted(),
                 breakoutFrequency: selectedConcerns.contains(.acne) ? singleAnswers[.breakoutFrequency] : nil,
                 routineLevel: singleAnswers[.routine] ?? "",
-                productPreference: singleAnswers[.preferences] ?? ""
+                productPreference: singleAnswers[.preferences] ?? "",
+                reminderFrequency: singleAnswers[.reminders] ?? "No reminders"
             )
             try await service.save(response: response)
             await MainActor.run {
-                onCompletion()
+                showRoutineScreen = true
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -406,6 +421,7 @@ struct OnboardingQuizResponse: Codable {
     let breakoutFrequency: String?
     let routineLevel: String
     let productPreference: String
+    let reminderFrequency: String
 
     enum CodingKeys: String, CodingKey {
         case skinAfterCleansing = "skin_after_cleansing"
@@ -415,6 +431,7 @@ struct OnboardingQuizResponse: Codable {
         case breakoutFrequency = "breakout_frequency"
         case routineLevel = "routine_level"
         case productPreference = "product_preference"
+        case reminderFrequency = "reminder_frequency"
     }
 }
 
@@ -427,6 +444,7 @@ private struct OnboardingQuizRow: Encodable {
     let breakout_frequency: String?
     let routine_level: String
     let product_preference: String
+    let reminder_frequency: String
     let completed_at: String
 }
 
@@ -474,6 +492,7 @@ struct SupabaseOnboardingQuizService: OnboardingQuizServicing {
             breakout_frequency: response.breakoutFrequency,
             routine_level: response.routineLevel,
             product_preference: response.productPreference,
+            reminder_frequency: response.reminderFrequency,
             completed_at: completedAt
         )
 
